@@ -8,7 +8,10 @@ first [install Ruby](https://install.founderhacker.com/steps/choose_os). then en
 * `headless`
 
 next (optional), move the `amz_reviews` file (from this repo) to an executable path. for Mac users this is often:
+
 `mv amz_reviews /usr/local/bin`
+
+note: this scraper uses Firefox by default. to switch to Chrome, replace `:firefox` with `:chrome` in the code but be forewarned - you may run into headaches. KISS.
 
 #### using the scraper
 
@@ -29,4 +32,3 @@ your terminal will produce a live log of scraping progress, which autosaves ever
 sample report from `asin` "B07C7FS86W"
 
 ![image](https://github.com/ryanckulp/amz_reviews/assets/3083888/2b2561ec-7a0d-40e8-ab23-7307c9077943)
-
