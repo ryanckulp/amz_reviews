@@ -1,0 +1,96 @@
+#!/usr/bin/env ruby
+
+require 'csv'
+require 'watir'
+require 'headless'
+
+class AmazonReviews
+  attr_reader :asin, :page_start, :page_end, :browser
+  attr_accessor :review_data
+
+  def initialize(asin, page_start, page_end)
+    @asin = asin
+    @page_start = page_start.to_i
+    @page_end = page_end.to_i
+
+    @review_data = []
+    @browser = new_browser
+  end
+
+  def call
+    fetch
+    save
+  end
+
+  def fetch
+    puts "fetching reviews for product with ASIN #{asin}...\n"
+    pages_numbers.each do |page_number|
+      browser.goto product_url # required to prevent amazon redirecting to user login, which skips the first page of results(!)
+      browser.goto reviews_url(page_number)
+      log_progress(page_number)
+
+      reviews = browser.divs(class: 'review')
+      puts "UH OH: REVIEWS NOT FOUND." if reviews.count.zero?
+
+      reviews.each do |review|
+        date_and_country = review.span(class: 'review-date')
+        date_clean = date_and_country.text.split('on ')[1]
+        country_clean = date_and_country.text.split('the ')[1].split('on')[0][0..-5]
+        stars_clean = review.span(class: 'a-icon-alt').innertext.split(' out')[0]
+
+        data = {
+          date: date_clean,
+          country: country_clean,
+          stars: stars_clean,
+          reviewer: review.span(class: 'a-profile-name').text,
+          title: review.a(class: 'review-title-content').text,
+          body: review.span(class: 'review-text-content').text
+        }
+
+        review_data << data
+        autosave if (review_data.count % 50).zero?
+      end
+    end
+
+    def save
+      CSV.open("amz-reviews-#{asin}.csv", "w") do |csv|
+        headers = review_data.first.keys
+        csv << headers
+        review_data.each do |data|
+          row = headers.map { |k| data[k] }
+          csv << row
+        end
+      end
+    end
+    alias :autosave :save
+  end
+
+  private
+
+  def reviews_url(page_number)
+    "https://www.amazon.com/product-reviews/#{asin}/?reviewerType=all_reviews&sortBy=recent&pageNumber=#{page_number}"
+  end
+
+  def product_url
+    "https://www.amazon.com/dp/#{asin}/"
+  end
+
+  def pages_numbers
+    (page_start..page_end).to_a
+  end
+
+  def pages_count
+    page_end - page_start
+  end
+
+  def log_progress(page_number)
+    puts "fetching page #{page_number} (page #{page_number - page_start} of #{pages_count} total)"
+  end
+
+  def new_browser
+    Watir::Browser.new :firefox, headless: true
+  end
+end
+
+abort 'Must provide a product ASIN' if ARGV.count.zero?
+AmazonReviews.new(ARGV[0], ARGV[1] || 0, ARGV[2] || 500).call
