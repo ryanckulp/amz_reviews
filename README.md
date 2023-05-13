@@ -1,5 +1,5 @@
 ## Amazon Review Scraper
-download a CSV of up to 5,000 reviews for any Amazon product.
+download a CSV of up to 5,000 reviews for any Amazon product. video tutorial for non dorks is [here]([url](https://twitter.com/ryanckulp/status/1657434781708066821)).
 
 #### installation
 first [install Ruby](https://install.founderhacker.com/steps/choose_os). then ensure the following Ruby gems are installed (`gem install <gem_name>`):
