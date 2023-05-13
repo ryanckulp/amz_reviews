@@ -33,39 +33,41 @@ class AmazonReviews
       puts "UH OH: REVIEWS NOT FOUND." if reviews.count.zero?
 
       reviews.each do |review|
-        date_and_country = review.span(class: 'review-date')
-        date_clean = date_and_country.text.split('on ')[1]
-        country_clean = date_and_country.text.split('the ')[1].split('on')[0][0..-5]
-        stars_clean = review.span(class: 'a-icon-alt').innertext.split(' out')[0]
-
-        data = {
-          date: date_clean,
-          country: country_clean,
-          stars: stars_clean,
-          reviewer: review.span(class: 'a-profile-name').text,
-          title: review.a(class: 'review-title-content').text,
-          body: review.span(class: 'review-text-content').text
-        }
-
-        review_data << data
-        autosave if (review_data.count % 50).zero?
+        review_data << scrape(review)
       end
+      autosave if (review_data.count % 50).zero?
     end
-
-    def save
-      CSV.open("amz-reviews-#{asin}.csv", "w") do |csv|
-        headers = review_data.first.keys
-        csv << headers
-        review_data.each do |data|
-          row = headers.map { |k| data[k] }
-          csv << row
-        end
-      end
-    end
-    alias :autosave :save
   end
 
+  def save
+    CSV.open("amz-reviews-#{asin}.csv", "w") do |csv|
+      headers = review_data.first.keys
+      csv << headers
+      review_data.each do |data|
+        row = headers.map { |k| data[k] }
+        csv << row
+      end
+    end
+  end
+  alias :autosave :save
+
   private
+
+  def scrape(review)
+    date_and_country = review.span(class: 'review-date')
+    date_clean = date_and_country.text.split('on ')[1]
+    country_clean = date_and_country.text.split('the ')[1].split('on')[0][0..-5]
+    stars_clean = review.span(class: 'a-icon-alt').innertext.split(' out')[0]
+
+    {
+      date: date_clean,
+      country: country_clean,
+      stars: stars_clean,
+      reviewer: review.span(class: 'a-profile-name').text,
+      title: review.a(class: 'review-title-content').text,
+      body: review.span(class: 'review-text-content').text
+    }
+  end
 
   def reviews_url(page_number)
     "https://www.amazon.com/product-reviews/#{asin}/?reviewerType=all_reviews&sortBy=recent&pageNumber=#{page_number}"
